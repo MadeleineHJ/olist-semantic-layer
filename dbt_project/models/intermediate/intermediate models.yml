@@ -1,0 +1,33 @@
+version: 2
+
+models:
+
+  - name: int_payments_per_order
+    description: >
+      Order payments aggregated from one row per payment method to
+      one row per order. Used by fact_orders.
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: total_payment_value
+      - name: primary_payment_type
+        description: Payment type of the highest-value payment row for this order.
+      - name: has_voucher
+        description: True if any payment method on this order was a voucher.
+
+  - name: int_items_per_order
+    description: >
+      Order items aggregated from one row per item to one row per order.
+      Used by fact_orders.
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: n_items
+        tests:
+          - not_null
+      - name: is_multi_seller
+        description: True if the order contains items from more than one seller.
