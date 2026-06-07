@@ -1,0 +1,14 @@
+# DBT PROFILES CONFIGURATION
+# ---------------------------
+# Tells dbt how to connect to the warehouse. We point it at the
+# DuckDB file created in Phase 1. The path is relative to wherever
+# dbt is invoked from -- when you cd into dbt_project/ and run
+# `dbt build`, this resolves to ../olist_warehouse.duckdb.
+
+olist:
+  outputs:
+    dev:
+      type: duckdb
+      path: "../olist_warehouse.duckdb"
+      threads: 4
+  target: dev
