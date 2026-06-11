@@ -1,4 +1,10 @@
+
+# Core data stack
 duckdb==1.1.3
 pandas==2.2.3
-dbt-duckdb==1.9.0
 
+# dbt + semantic layer
+# dbt-metricflow bundles dbt-core, MetricFlow, and the DuckDB adapter at
+# mutually compatible versions. Installing it may upgrade dbt-core (e.g.
+# from 1.10 to 1.11); this is expected and the project builds fine on it.
+dbt-metricflow[dbt-duckdb]

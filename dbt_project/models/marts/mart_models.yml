@@ -60,11 +60,16 @@ models:
     description: >
       Standard date dimension covering 2016-01-01 through 2018-12-31.
       Generated via DuckDB's range() function.
+      Also serves as the MetricFlow time spine (see time_spine block).
+    time_spine:
+      standard_granularity_column: date_day
     columns:
       - name: date_key
         tests:
           - unique
           - not_null
+      - name: date_day
+        granularity: day
       - name: year
         tests:
           - not_null
@@ -82,6 +87,11 @@ models:
     description: >
       Order line items at item grain (~112k rows). Use for product-level
       and seller-level analysis. For order-level metrics use fact_orders.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - order_id
+            - order_item_id
     columns:
       - name: order_id
         tests:
@@ -162,7 +172,22 @@ models:
               values: [1, 2, 3, 4, 5]
               config:
                 where: "review_score is not null"
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 5
+              inclusive: true
+              config:
+                where: "review_score is not null"
       - name: n_items
         description: Number of items in the order (0 for orders with no items).
         tests:
           - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+      - name: total_item_price
+        description: Sum of item prices for the order (excludes freight).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true

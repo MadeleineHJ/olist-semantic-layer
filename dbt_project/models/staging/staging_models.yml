@@ -30,6 +30,12 @@ models:
     description: >
       Orders with delivery-performance fields derived for downstream use.
       Grain: one row per order.
+    tests:
+      # days_late should never be negative (0 = on-time, positive = late).
+      - dbt_utils.expression_is_true:
+          expression: "days_late >= 0"
+          config:
+            where: "days_late is not null"
     columns:
       - name: order_id
         tests:
@@ -63,6 +69,16 @@ models:
           - not_null
           - accepted_values:
               values: ['on_time', 'late', 'not_delivered']
+      - name: order_delivered_customer_date
+        description: >
+          When the customer received the order. NULL for undelivered orders
+          (~3% expected). The custom proportion test warns if the non-null
+          rate drops below 90%, which would signal a delivery-data problem.
+        tests:
+          - proportion_not_null:
+              at_least: 0.90
+              config:
+                severity: warn
 
   # ==========================================================================
   - name: stg_order_items
@@ -70,6 +86,12 @@ models:
       Order line items. Grain: one row per item per order.
       WARNING: Do not join directly to stg_order_payments without
       aggregating first; row counts will multiply.
+    tests:
+      # The grain itself: order_id + order_item_id must be unique together.
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - order_id
+            - order_item_id
     columns:
       - name: order_id
         tests:
@@ -95,6 +117,9 @@ models:
       - name: price
         tests:
           - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
       - name: gross_item_value
         description: price + freight_value for this line item.
 

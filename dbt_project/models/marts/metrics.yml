@@ -1,0 +1,104 @@
+metrics:
+
+  # VOLUME
+  - name: orders_total
+    label: "Orders (Total)"
+    description: >
+      Count of ALL orders placed, regardless of status. Includes canceled
+      and undelivered. Use for top-of-funnel volume.
+    type: simple
+    type_params:
+      measure: order_count
+
+  - name: orders_completed
+    label: "Orders (Completed)"
+    description: >
+      Count of DELIVERED orders only. The conservative "real sales" number.
+    type: simple
+    type_params:
+      measure: delivered_order_count
+
+  # Building-block metrics (used as numerators in ratios below).
+  - name: orders_on_time
+    label: "Orders (On-Time)"
+    description: Count of orders delivered on or before the estimated date.
+    type: simple
+    type_params:
+      measure: on_time_order_count
+
+  - name: orders_reviewed
+    label: "Orders (Reviewed)"
+    description: Count of orders that received a review.
+    type: simple
+    type_params:
+      measure: reviewed_order_count
+
+  # REVENUE -- the headline ambiguity from Phase 2
+  - name: revenue_gross
+    label: "Revenue (Gross)"
+    description: >
+      Item revenue (excluding freight) across all NON-CANCELED orders.
+    type: simple
+    type_params:
+      measure: total_item_revenue
+    filter: |
+      {{ Dimension('order__order_status') }} != 'canceled'
+
+  - name: revenue_net
+    label: "Revenue (Net)"
+    description: >
+      Item revenue (excluding freight) from DELIVERED orders only.
+    type: simple
+    type_params:
+      measure: total_item_revenue
+    filter: |
+      {{ Dimension('order__order_status') }} = 'delivered'
+
+  - name: revenue_collected
+    label: "Revenue (Payments Collected)"
+    description: >
+      Total payments actually collected, including freight and installments.
+    type: simple
+    type_params:
+      measure: total_payment_value
+    filter: |
+      {{ Dimension('order__order_status') }} = 'delivered'
+
+  # AVERAGE ORDER VALUE
+  - name: average_order_value
+    label: "Average Order Value (Net)"
+    description: >
+      Net item revenue divided by completed orders. Per-ORDER, not per-item.
+    type: ratio
+    type_params:
+      numerator: revenue_net
+      denominator: orders_completed
+
+  # DELIVERY PERFORMANCE -- the headline operational story
+  - name: on_time_delivery_rate
+    label: "On-Time Delivery Rate"
+    description: >
+      Share of delivered orders that arrived on or before the estimated
+      date. on-time orders / delivered orders.
+    type: ratio
+    type_params:
+      numerator: orders_on_time
+      denominator: orders_completed
+
+  # SATISFACTION -- ties back to Project 2
+  - name: average_review_score
+    label: "Average Review Score"
+    description: >
+      Mean review score (1-5) across orders that received a review.
+    type: simple
+    type_params:
+      measure: review_score_average
+
+  - name: review_coverage_rate
+    label: "Review Coverage Rate"
+    description: >
+      Share of all orders that received a review. reviewed / all orders.
+    type: ratio
+    type_params:
+      numerator: orders_reviewed
+      denominator: orders_total

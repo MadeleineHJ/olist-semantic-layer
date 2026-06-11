@@ -1,0 +1,89 @@
+semantic_models:
+
+  # ==========================================================================
+  # orders -- the order-grain semantic model built on fact_orders
+  # ==========================================================================
+  - name: orders
+    description: >
+      Order-grain semantic model. The foundation for nearly all headline
+      metrics: revenue, order counts, delivery performance, satisfaction.
+    model: ref('fact_orders')
+
+    defaults:
+      agg_time_dimension: order_date
+
+    entities:
+      - name: order
+        type: primary
+        expr: order_id
+      - name: customer
+        type: foreign
+        expr: customer_key
+
+    dimensions:
+      - name: order_date
+        type: time
+        expr: order_purchase_timestamp
+        type_params:
+          time_granularity: day
+      - name: order_status
+        type: categorical
+      - name: delivery_status
+        type: categorical
+      - name: primary_payment_type
+        type: categorical
+
+    measures:
+      - name: order_count
+        description: Number of orders.
+        agg: count
+        expr: order_id
+      - name: total_item_revenue
+        description: Sum of item prices, excluding freight (BRL).
+        agg: sum
+        expr: total_item_price
+      - name: total_payment_value
+        description: Sum of payments actually collected (BRL).
+        agg: sum
+        expr: total_payment_value
+      - name: total_freight
+        description: Sum of freight charges (BRL).
+        agg: sum
+        expr: total_freight_value
+      - name: review_score_average
+        description: Average review score (1-5); orders without a review excluded.
+        agg: average
+        expr: review_score
+      - name: delivered_order_count
+        description: Count of delivered orders (0/1 summed).
+        agg: sum
+        expr: "case when is_delivered then 1 else 0 end"
+      - name: on_time_order_count
+        description: Count of orders delivered on or before estimate (0/1 summed).
+        agg: sum
+        expr: "case when delivery_status = 'on_time' then 1 else 0 end"
+      - name: reviewed_order_count
+        description: Count of orders that received a review.
+        agg: sum
+        expr: "case when has_review then 1 else 0 end"
+
+  # ==========================================================================
+  # customers -- DIMENSION-ONLY model on dim_customers.
+  # No measures (dim_customers has no time dimension). Its purpose is to let
+  # order metrics be sliced by customer geography via the shared `customer`
+  # entity (orders has it as foreign, customers as primary).
+  # ==========================================================================
+  - name: customers
+    description: Customer dimension source built on dim_customers.
+    model: ref('dim_customers')
+
+    entities:
+      - name: customer
+        type: primary
+        expr: customer_key
+
+    dimensions:
+      - name: customer_state
+        type: categorical
+      - name: is_southeast_region
+        type: categorical
