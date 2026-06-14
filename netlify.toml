@@ -1,0 +1,12 @@
+# Netlify deployment config for the Olist Evidence dashboard.
+# Evidence lives in the evidence/ subfolder of this repo.
+# This file lives at the repo root.
+
+[build]
+  base    = "evidence"
+  command = "npm install --legacy-peer-deps && npm run build"
+  publish = "build"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS    = "--legacy-peer-deps"

@@ -1,0 +1,1 @@
+[{"name":"product_key","evidenceType":"string","typeFidelity":"precise"},{"name":"product_category","evidenceType":"string","typeFidelity":"precise"},{"name":"product_size_class","evidenceType":"string","typeFidelity":"precise"},{"name":"listing_quality","evidenceType":"string","typeFidelity":"precise"}]

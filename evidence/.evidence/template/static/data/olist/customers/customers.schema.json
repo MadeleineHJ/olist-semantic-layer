@@ -1,0 +1,1 @@
+[{"name":"customer_key","evidenceType":"string","typeFidelity":"precise"},{"name":"customer_state","evidenceType":"string","typeFidelity":"precise"},{"name":"is_southeast_region","evidenceType":"boolean","typeFidelity":"precise"},{"name":"n_customer_ids","evidenceType":"number","typeFidelity":"precise"}]
