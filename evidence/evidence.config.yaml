@@ -1,0 +1,30 @@
+﻿appearance:
+  default: light
+  switcher: true
+
+plugins:
+  components:
+    "@evidence-dev/core-components": {}
+  datasources:
+    "@evidence-dev/duckdb": {}
+
+theme:
+  colorPalettes:
+    default:
+      light:
+        - "#1e3a8a"
+      dark:
+        - "#3b82f6"
+  colors:
+    primary:
+      light: "#1e3a8a"
+      dark: "#3b82f6"
+    accent:
+      light: "#1e3a8a"
+      dark: "#3b82f6"
+    base:
+      light: "#ffffff"
+      dark: "#0b0b15"
+    info:
+      light: "#1e3a8a"
+      dark: "#3b82f6"

@@ -1,0 +1,4 @@
+name: olist
+type: duckdb
+options:
+  filename: ../../../olist_warehouse.duckdb

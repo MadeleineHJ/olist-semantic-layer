@@ -1,0 +1,19 @@
+select
+    order_id,
+    customer_key,
+    order_date_key,
+    order_purchase_timestamp,
+    order_status,
+    delivery_status,
+    is_delivered,
+    is_on_time,
+    delivery_days,
+    days_late,
+    n_items,
+    total_item_price,
+    total_freight_value,
+    total_payment_value,
+    primary_payment_type,
+    review_score,
+    has_review
+from main_marts.fact_orders
