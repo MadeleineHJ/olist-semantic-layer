@@ -16,41 +16,8 @@ from raw CSVs to a governed semantic layer and a deployed BI dashboard.
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    csv["9 raw CSVs<br/>Olist Kaggle"]
-    raw["DuckDB<br/>raw schema"]
-    stg["dbt staging<br/>8 models"]
-    int["dbt intermediate<br/>2 models"]
-    marts["dbt marts<br/>4 dims + 2 facts"]
-    sem["MetricFlow<br/>11 governed metrics"]
-    tests["dbt tests<br/>140+ checks"]
-    dq[("dq_failures<br/>audit schema")]
-    bi["Evidence.dev<br/>dashboard"]
-    deploy["Netlify<br/>live URL"]
+<img width="1440" height="640" alt="image" src="https://github.com/user-attachments/assets/4efcd610-23f6-4da7-9f7f-5f429e8f9418" />
 
-    csv -->|Python ingest| raw
-    raw --> stg
-    stg --> int
-    int --> marts
-    marts --> sem
-    marts -.->|validate| tests
-    tests -.->|store_failures| dq
-    sem --> bi
-    bi -->|npm run build| deploy
-
-    classDef src fill:#f1efe8,stroke:#888780,color:#2c2c2a
-    classDef warehouse fill:#e6f1fb,stroke:#185fa5,color:#042c53
-    classDef transform fill:#e1f5ee,stroke:#0f6e56,color:#04342c
-    classDef govern fill:#eeedfe,stroke:#534ab7,color:#26215c
-    classDef quality fill:#faeeda,stroke:#854f0b,color:#412402
-
-    class csv src
-    class raw warehouse
-    class stg,int,marts transform
-    class sem,bi,deploy govern
-    class tests,dq quality
-```
 
 ## Tech stack
 
