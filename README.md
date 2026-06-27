@@ -120,6 +120,83 @@ an independent business process (avg 1.045 payments per order, no own
 dimensions). Payment data is folded into `fact_orders` via an intermediate
 aggregation rather than creating a separate fact, which would have invited
 fan-out bugs.
+## Production considerations
+
+This project is portfolio-scale: it runs locally on a static, public dataset of
+99k orders. A production analytics engineering setup at a real company would
+differ at every layer. The mapping below is what would change end-to-end.
+
+**Ingestion.** A Python script reading static CSVs once is replaced by
+continuous ingestion: Airbyte or Fivetran for SaaS sources (Stripe, Salesforce,
+Google Analytics), Debezium or Kafka for change-data-capture from transactional
+databases, and custom Python ELT for the long tail. Data lands in cloud storage
+(S3 or GCS) as Parquet, then loads into the warehouse on a schedule (hourly or
+daily depending on SLA). Source freshness is monitored via dbt's
+`source freshness` block, with alerts when a feed lags.
+
+**Warehouse.** DuckDB on a laptop becomes Snowflake, BigQuery, or Redshift,
+cloud-hosted, with separate environments for dev, staging, and prod (typically
+different databases or schemas). Performance tuning matters: clustering keys,
+partitioning, and choosing the right materialization (table vs view vs
+incremental) per model. Warehouse compute costs are monitored and budgeted per
+team.
+
+**dbt models.** `dbt build` doing a full refresh of every model becomes
+incremental materialization on large facts: `fact_order_items` only builds new
+rows since the last run, not the whole table. Each engineer works in their own
+dev schema; PRs build into a staging schema; only merges hit prod. SQLFluff
+enforces consistent SQL style. Naming conventions are linted, not just
+suggested. dbt docs are auto-published to a hosted URL on every prod build.
+
+**Semantic layer.** MetricFlow used from the CLI becomes the source of truth
+for *every* downstream tool, not just one dashboard. Metric definitions go
+through change management: ownership assigned per metric, deprecation periods
+for breaking changes, downstream impact reviewed before merge. BI tools
+(Tableau, Looker, Hex) read directly from these definitions rather than
+re-implementing the math.
+
+**Data quality.** 140+ dbt tests are the floor, not the ceiling. Production
+adds anomaly detection (Elementary, Monte Carlo, Bigeye) that catches issues
+schema-level tests miss, like revenue dropping 30% today vs the trailing week.
+Alerts route to Slack or PagerDuty depending on severity. Each model carries a
+freshness SLA, and breaches are tracked. Lineage-aware impact analysis surfaces
+which downstream dashboards and reverse-ETL consumers are affected by a failing
+test.
+
+**BI dashboard.** Evidence as a static public site becomes a BI tool connected
+to the live warehouse: SSO authentication, row-level security based on user
+role (sales reps see only their accounts), subscriptions, and metric-threshold
+alerts. Customer-facing analytics would use Sigma, Hex, or a custom embedded
+app instead of a generic BI tool.
+
+**CI/CD.** GitHub Actions running `dbt build` on every push becomes:
+
+- **Pull requests, not direct pushes.** Branch protection forbids pushing
+  directly to `main`; every change is reviewed
+- **Slim CI** (`dbt build --select state:modified+`) rebuilds only changed
+  models and their downstream dependents, cutting CI from 30+ minutes to a
+  few minutes
+- **Real staging warehouse, not fixtures.** CI builds into a scratch schema
+  named after the PR so reviewers can inspect actual transformed data
+- **Data diff** (Datafold or Recce) generates row-level diffs between the PR
+  branch and `main`, surfacing the actual data impact of every change as a
+  PR comment
+- **Separate CD pipeline** runs production builds on a schedule, orchestrated
+  by Airflow, Dagster, or dbt Cloud
+- **Secrets in GitHub Actions secrets**, not in `profiles.yml`
+
+**Team and process.** A production project has organizational layers absent
+here: clear ownership across analytics engineers, data engineers, analysts,
+and data scientists; on-call rotation with postmortems for incidents;
+documentation reviewed in code review rather than optional; compliance work
+(PII masking, audit logs, SOC 2, GDPR); and warehouse cost ownership per team.
+
+---
+
+The summary: this project demonstrates the components and how they fit
+together. A production system adds operational rigor (scheduling, monitoring,
+alerting), organizational structure (ownership, review processes), and scale
+considerations (incremental builds, real warehouses, cost management) on top.
 
 ## Quickstart
 
