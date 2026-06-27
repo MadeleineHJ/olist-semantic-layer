@@ -1,5 +1,7 @@
 # Olist Marketplace Analytics
 
+[![CI](https://github.com/MadeleineHJ/olist-semantic-layer/actions/workflows/ci.yml/badge.svg)](https://github.com/MadeleineHJ/olist-semantic-layer/actions/workflows/ci.yml)
+
 **Live dashboard:** [olist-marketplace-analytics.netlify.app](https://olist-marketplace-analytics.netlify.app)
 
 End-to-end analytics engineering project on the Olist Brazilian e-commerce
@@ -16,8 +18,41 @@ from raw CSVs to a governed semantic layer and a deployed BI dashboard.
 
 ## Architecture
 
-<img width="1440" height="640" alt="image" src="https://github.com/user-attachments/assets/4efcd610-23f6-4da7-9f7f-5f429e8f9418" />
+```mermaid
+flowchart LR
+    csv["9 raw CSVs<br/>Olist Kaggle"]
+    raw["DuckDB<br/>raw schema"]
+    stg["dbt staging<br/>8 models"]
+    int["dbt intermediate<br/>2 models"]
+    marts["dbt marts<br/>4 dims + 2 facts"]
+    sem["MetricFlow<br/>11 governed metrics"]
+    tests["dbt tests<br/>140+ checks"]
+    dq[("dq_failures<br/>audit schema")]
+    bi["Evidence.dev<br/>dashboard"]
+    deploy["Netlify<br/>live URL"]
 
+    csv -->|Python ingest| raw
+    raw --> stg
+    stg --> int
+    int --> marts
+    marts --> sem
+    marts -.->|validate| tests
+    tests -.->|store_failures| dq
+    sem --> bi
+    bi -->|npm run build| deploy
+
+    classDef src fill:#f1efe8,stroke:#888780,color:#2c2c2a
+    classDef warehouse fill:#e6f1fb,stroke:#185fa5,color:#042c53
+    classDef transform fill:#e1f5ee,stroke:#0f6e56,color:#04342c
+    classDef govern fill:#eeedfe,stroke:#534ab7,color:#26215c
+    classDef quality fill:#faeeda,stroke:#854f0b,color:#412402
+
+    class csv src
+    class raw warehouse
+    class stg,int,marts transform
+    class sem,bi,deploy govern
+    class tests,dq quality
+```
 
 ## Tech stack
 
@@ -29,6 +64,23 @@ from raw CSVs to a governed semantic layer and a deployed BI dashboard.
 | Data quality     | dbt tests, store_failures, custom generic test |
 | BI / dashboard   | Evidence.dev (DuckDB connector)                |
 | Ingestion        | Python (duckdb + read_csv_auto)                |
+| CI               | GitHub Actions (`dbt build` on every PR)        |
+
+## Continuous integration
+
+Every push to `main` and every pull request runs a GitHub Actions workflow
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) that:
+
+1. Stages sample CSVs from `tests/fixtures/` into `raw_data/`
+2. Loads them into a fresh DuckDB warehouse
+3. Installs the dbt packages (`dbt deps`)
+4. Compiles the dbt project (`dbt compile`)
+5. Builds all models and runs all 140+ tests (`dbt build`)
+
+The badge above turns green only when every model builds and every test passes.
+Tests are run against committed sample data (`tests/fixtures/`, ~36 KB total)
+rather than the full Olist dataset, which keeps CI runs under 3 minutes and
+avoids shipping the 50 MB raw data with the repo.
 
 ## Project structure
 
@@ -49,6 +101,10 @@ olist-semantic-layer/
 ├── evidence/                     # BI layer
 │   ├── pages/index.md            # consolidated single-page dashboard
 │   └── sources/olist/            # DuckDB source queries
+├── tests/
+│   └── fixtures/                 # sample CSVs (36KB) used by CI
+├── .github/workflows/
+│   └── ci.yml                    # GitHub Actions: dbt build + tests on every PR
 ├── docs/
 │   ├── phase2_findings.md        # data profiling decisions
 │   ├── metrics_catalog.md        # governance artifact for the semantic layer
