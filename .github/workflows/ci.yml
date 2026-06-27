@@ -1,0 +1,65 @@
+name: CI
+
+# Run on every push to main and on every pull request.
+# Validates that the dbt project builds and all 140+ tests pass against
+# committed sample data in tests/fixtures/.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:  # allow manual runs from the Actions tab
+
+jobs:
+  dbt-build:
+    name: dbt build + tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      DBT_PROFILES_DIR: .
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Stage sample data into raw_data/
+        run: |
+          mkdir -p raw_data
+          cp tests/fixtures/*.csv raw_data/
+          echo "Staged $(ls raw_data | wc -l) sample CSVs:"
+          ls -la raw_data/
+
+      - name: Load raw data into DuckDB
+        run: python scripts/load_raw_data.py
+
+      - name: Install dbt packages
+        working-directory: dbt_project
+        run: dbt deps
+
+      - name: Compile dbt project
+        working-directory: dbt_project
+        run: dbt compile
+
+      - name: Build dbt project (run + test)
+        working-directory: dbt_project
+        run: dbt build
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## dbt run results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -20 dbt_project/logs/dbt.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "(no logs available)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

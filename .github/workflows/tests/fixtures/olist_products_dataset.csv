@@ -1,0 +1,4 @@
+product_id,product_category_name,product_name_lenght,product_description_lenght,product_photos_qty,product_weight_g,product_length_cm,product_height_cm,product_width_cm
+p001,informatica,42,500,2,700,30,10,20
+p002,beleza_saude,35,300,1,200,15,5,10
+p003,moveis_decoracao,50,800,4,12000,80,50,40
