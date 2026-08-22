@@ -2,10 +2,7 @@
 Phase 2: Profile Grain and Tricky Spots
 ========================================
 Runs a series of investigations against the raw Olist data to expose
-the modeling decisions you need to make BEFORE writing dbt models.
-
-Each section prints a finding and (where relevant) a "Modeling Implication"
-line. Capture those in docs/phase2_findings.md as you go.
+the modeling decisions needed to make BEFORE writing dbt models.
 
 Usage:
     python scripts/profile_data.py
