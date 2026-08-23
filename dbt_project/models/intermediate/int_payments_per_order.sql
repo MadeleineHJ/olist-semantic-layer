@@ -1,11 +1,6 @@
--- ============================================================================
--- int_payments_per_order
--- ----------------------------------------------------------------------------
--- Collapses one-row-per-payment-method into one-row-per-order so it can be
--- safely joined to fact_orders without exploding row counts.
--- Surfaces split-tender signals (n_payment_methods, has_voucher) and the
--- primary payment type (defined as the highest-value method on the order).
--- ============================================================================
+-- collapses payments to one row per order so joining into fact_orders
+-- doesn't fan out. primary_payment_type = whichever method contributed
+-- the most on that order (only really matters for split-tender orders).
 
 with payments as (
 

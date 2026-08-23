@@ -1,10 +1,5 @@
--- ============================================================================
--- stg_orders
--- ----------------------------------------------------------------------------
--- Grain: one row per order.
--- Adds derived delivery-performance fields used by both fact_orders and
--- the customer-satisfaction analyses downstream.
--- ============================================================================
+-- one row per order. Also derives the delivery fields (on_time/late/
+-- days_late) that fact_orders and the satisfaction analysis both need.
 
 with source as (
 

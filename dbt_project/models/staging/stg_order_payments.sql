@@ -1,11 +1,6 @@
--- ============================================================================
--- stg_order_payments
--- ----------------------------------------------------------------------------
--- Grain: one row per payment method used per order.
--- Kept at source grain here. Aggregation to one-row-per-order happens in
--- the intermediate/marts layer (so the raw payment-method detail stays
--- available for split-tender analysis).
--- ============================================================================
+-- one row per payment method per order -- kept at source grain here on
+-- purpose, aggregation to one-row-per-order happens in int_payments_per_order
+-- so the split-tender detail isn't thrown away this early.
 
 with source as (
 

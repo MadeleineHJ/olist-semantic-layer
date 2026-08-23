@@ -1,9 +1,8 @@
 {{ config(store_failures=true, schema='dq_failures') }}
 
--- Business rule: an order cannot be delivered before it was purchased.
--- If this fails, either the source timestamps are corrupt or our
--- delivery_days / days_late calculations will produce nonsense.
--- FAILS if any offending rows are returned.
+-- an order can't be delivered before it was purchased. if this fires,
+-- either the source timestamps are broken or delivery_days/days_late
+-- will be nonsense.
 
 select
     order_id,

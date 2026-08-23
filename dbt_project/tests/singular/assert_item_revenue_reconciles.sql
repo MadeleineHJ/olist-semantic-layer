@@ -1,11 +1,8 @@
 {{ config(store_failures=true, schema='dq_failures') }}
 
--- Business rule: total item revenue must be identical whether computed
--- from the item-grain fact (fact_order_items) or the pre-aggregated
--- order-grain fact (fact_orders). If they diverge, the aggregation in
--- int_items_per_order is wrong and revenue metrics can't be trusted.
--- A 1-cent tolerance absorbs floating-point rounding.
--- FAILS if the totals differ by more than 0.01.
+-- item revenue should total the same whether it's summed from
+-- fact_order_items or fact_orders. if it doesn't, the aggregation in
+-- int_items_per_order is wrong. 1-cent tolerance for float rounding.
 
 with items_grain as (
     select sum(price) as total_revenue

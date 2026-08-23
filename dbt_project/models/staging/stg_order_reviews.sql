@@ -1,11 +1,6 @@
--- ============================================================================
--- stg_order_reviews
--- ----------------------------------------------------------------------------
--- Grain: one row per order_id.
--- Source has 99,224 rows for 98,673 distinct orders -- 547 orders have
--- multiple reviews. We keep the most recent review per order.
--- This is data-cleaning, not business logic, so it lives in staging.
--- ============================================================================
+-- one row per order_id. Source has 99,224 rows for 98,673 distinct
+-- orders -- 547 orders got reviewed more than once, we just keep
+-- whichever review is newest.
 
 with source as (
 
@@ -38,8 +33,7 @@ renamed as (
 
 deduplicated as (
 
-    -- Keep the latest review per order. ROW_NUMBER + QUALIFY is the
-    -- idiomatic pattern for "pick one row per group" in DuckDB.
+    -- keep the latest review per order
     select *
     from renamed
     qualify row_number() over (

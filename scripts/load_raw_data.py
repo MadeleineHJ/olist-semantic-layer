@@ -1,18 +1,12 @@
 """
-Phase 1: Load Olist Raw Data into DuckDB
-=========================================
-This script reads all nine Olist CSV files from the raw_data/ directory
-and loads them into a DuckDB database under a 'raw' schema.
+Loads the 9 Olist CSVs from raw_data/ into DuckDB under a 'raw' schema.
+No cleaning happens here, that's dbt's job.
 
-No cleaning or transformation happens here -- that belongs in dbt (Phase 3).
+Usage: python scripts/load_raw_data.py
 
-Usage:
-    python scripts/load_raw_data.py
-
-Prerequisites:
-    1. Download the Olist dataset from Kaggle:
-       https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce
-    2. Unzip and place all CSV files in the raw_data/ directory
+Needs the CSVs downloaded first:
+https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce
+(unzip into raw_data/)
 """
 
 import duckdb
@@ -20,17 +14,12 @@ import os
 import sys
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_DATA_DIR = PROJECT_ROOT / "raw_data"
 DB_PATH = PROJECT_ROOT / "olist_warehouse.duckdb"
 SCHEMA = "raw"
 
-# Mapping: CSV filename -> table name in DuckDB
-# This gives us clean, consistent table names in the raw schema.
+# csv filename -> table name
 CSV_TO_TABLE = {
     "olist_customers_dataset.csv":                  "customers",
     "olist_geolocation_dataset.csv":                "geolocation",
@@ -111,9 +100,7 @@ def load_csvs_to_duckdb(csv_files: list[Path]) -> None:
         print(f"  LOADED {full_table_name:<35} {row_count:>10,} rows  |  {col_count} columns")
         loaded_count += 1
 
-    # ---------------------------------------------------------------------------
-    # Print a summary of everything in the raw schema
-    # ---------------------------------------------------------------------------
+    # summary of everything now in the raw schema
     print("\n" + "=" * 70)
     print(f"  DATABASE : {DB_PATH}")
     print(f"  SCHEMA   : {SCHEMA}")

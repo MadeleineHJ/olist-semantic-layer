@@ -1,10 +1,8 @@
 {{ config(store_failures=true, schema='dq_failures') }}
 
--- Business rule: fact_orders must have exactly one row per order in
--- stg_orders. The LEFT JOINs to items, payments, and reviews should
--- enrich orders, never multiply or drop them. If the row counts differ,
--- a join fan-out or filter bug has been introduced.
--- FAILS if the counts do not match.
+-- fact_orders should have exactly one row per stg_orders row -- the left
+-- joins to items/payments/reviews are supposed to enrich, not multiply
+-- or drop rows.
 
 with fact_count as (
     select count(*) as n_rows from {{ ref('fact_orders') }}

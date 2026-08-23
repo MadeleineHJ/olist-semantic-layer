@@ -1,8 +1,7 @@
 {{ config(store_failures=true, schema='dq_failures') }}
 
--- Business rule: prices and freight must never be negative.
--- A negative value would inflate or corrupt revenue metrics.
--- This test FAILS if any offending rows are returned.
+-- prices/freight should never be negative -- would silently corrupt
+-- revenue if it slipped through.
 
 select
     order_id,

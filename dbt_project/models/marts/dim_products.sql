@@ -1,11 +1,5 @@
--- ============================================================================
--- dim_products
--- ----------------------------------------------------------------------------
--- Grain: one row per product.
--- Adds derived categorizations useful for dashboards:
---   - product_size_class: small / medium / large by weight
---   - listing_quality:    high / medium / low by photo count + description
--- ============================================================================
+-- one row per product. size_class and listing_quality are just rough
+-- buckets for dashboard filters, not anything more rigorous.
 
 with products as (
 

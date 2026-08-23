@@ -1,21 +1,6 @@
--- ============================================================================
--- fact_orders
--- ----------------------------------------------------------------------------
--- Grain: one row per order (~99k rows).
---
--- The headline fact table. Combines order attributes, aggregated item totals,
--- aggregated payment totals, and the customer review.
---
--- This is what most downstream metrics in the semantic layer (Phase 5) and
--- BI dashboards (Phase 7) will query.
---
--- Sources:
---   stg_orders                       -- one row per order (the spine)
---   stg_customers                    -- to resolve customer_unique_id
---   int_items_per_order              -- pre-aggregated item totals
---   int_payments_per_order           -- pre-aggregated payment totals
---   stg_order_reviews                -- one row per order (already deduped)
--- ============================================================================
+-- one row per order (~99k). stg_orders is the spine; items, payments,
+-- and the review all get left-joined on. This is what most of the
+-- semantic layer and the dashboard actually query, not fact_order_items.
 
 with orders as (
 

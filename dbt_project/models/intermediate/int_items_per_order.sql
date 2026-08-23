@@ -1,10 +1,5 @@
--- ============================================================================
--- int_items_per_order
--- ----------------------------------------------------------------------------
--- Collapses item-grain to order-grain. fact_orders uses this to expose
--- order-level totals (n_items, total revenue, total freight) without
--- having to re-aggregate every time downstream.
--- ============================================================================
+-- rolls item-grain up to order-grain (n_items, totals) so fact_orders
+-- isn't re-aggregating raw items itself.
 
 with items as (
 

@@ -1,11 +1,8 @@
 """
-Verify Raw Data Load
-=====================
-Run this after load_raw_data.py to confirm everything loaded correctly
-and get a quick profile of each table (nulls, types, sample values).
+Run after load_raw_data.py to sanity-check the load: null rates per
+column plus a few FK relationship checks between tables.
 
-Usage:
-    python scripts/verify_raw_data.py
+Usage: python scripts/verify_raw_data.py
 """
 
 import duckdb

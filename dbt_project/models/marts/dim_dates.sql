@@ -1,9 +1,5 @@
--- ============================================================================
--- dim_dates
--- ----------------------------------------------------------------------------
--- Standard date dimension. Generated for the full Olist period plus buffer.
--- DuckDB's range() returns a TIMESTAMP series we cast to DATE.
--- ============================================================================
+-- standard date spine, generated for 2016-2019 to cover the Olist
+-- period with a little buffer on either side.
 
 with date_spine as (
 

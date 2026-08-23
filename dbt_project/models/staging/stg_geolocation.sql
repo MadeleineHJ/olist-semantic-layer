@@ -1,11 +1,6 @@
--- ============================================================================
--- stg_geolocation
--- ----------------------------------------------------------------------------
--- Grain: one row per zip code prefix.
--- Raw geolocation has ~52 rows per zip code (multiple lat/lng samples).
--- Joining the raw table directly to customers/sellers would multiply rows.
--- We collapse to a centroid (avg lat/lng) and the modal city/state per zip.
--- ============================================================================
+-- raw geolocation has ~52 rows per zip (multiple lat/lng pings), so this
+-- collapses to one row per zip -- centroid + most common city/state.
+-- don't join the raw table anywhere else, it'll multiply rows.
 
 with source as (
 

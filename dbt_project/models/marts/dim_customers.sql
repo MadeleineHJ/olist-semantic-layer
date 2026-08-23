@@ -1,13 +1,6 @@
--- ============================================================================
--- dim_customers
--- ----------------------------------------------------------------------------
--- Grain: one row per customer_unique_id (the ACTUAL person).
--- Collapses the per-order customer_id rows from stg_customers.
---
--- See docs/phase2_findings.md section 2 for the customer_id vs
--- customer_unique_id distinction. This is the most important
--- modeling decision in the entire project.
--- ============================================================================
+-- collapses stg_customers down to one row per real person
+-- (customer_unique_id), not per order. See docs/phase2_findings.md #2
+-- for why -- this is the grain decision everything downstream leans on.
 
 with customers as (
 

@@ -1,13 +1,5 @@
--- ============================================================================
--- fact_order_items
--- ----------------------------------------------------------------------------
--- Grain: one row per item per order (~112k rows).
---
--- This is the most detailed fact table. Use it for product-level and
--- seller-level analysis. For order-level analysis use fact_orders instead.
---
--- Foreign keys link to dim_customers, dim_products, dim_sellers, dim_dates.
--- ============================================================================
+-- item grain (~112k rows) -- use this for product/seller-level analysis.
+-- For order-level questions, fact_orders is the one you want instead.
 
 with items as (
 

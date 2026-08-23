@@ -1,9 +1,5 @@
--- ============================================================================
--- stg_customers
--- ----------------------------------------------------------------------------
--- Grain: one row per customer_id (per-order customer context, NOT per person).
--- Downstream dim_customers will collapse to customer_unique_id grain.
--- ============================================================================
+-- one row per customer_id here -- that's per order, not per person.
+-- dim_customers collapses this down to customer_unique_id.
 
 with source as (
 

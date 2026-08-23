@@ -1,14 +1,10 @@
 """
-Phase 2: Profile Grain and Tricky Spots
-========================================
-Runs a series of investigations against the raw Olist data to expose
-the modeling decisions you need to make BEFORE writing dbt models.
+Profiles the raw Olist tables for grain issues and other gotchas before
+any dbt model gets written -- customer_id vs customer_unique_id, item/
+payment/review fan-out, geolocation duplicates, etc. Findings from this
+run are what docs/phase2_findings.md is based on.
 
-Each section prints a finding and (where relevant) a "Modeling Implication"
-line. Capture those in docs/phase2_findings.md as you go.
-
-Usage:
-    python scripts/profile_data.py
+Usage: python scripts/profile_data.py
 """
 
 import duckdb
@@ -53,9 +49,6 @@ def main():
 
     con = duckdb.connect(str(DB_PATH), read_only=True)
 
-    # =====================================================================
-    # 1. DATE RANGE -- what time period does the data cover?
-    # =====================================================================
     section("1. DATE RANGE")
 
     rows = query(con, f"""
@@ -80,14 +73,10 @@ def main():
     show(rows, ["year", "order_count"])
 
     print("""
-  >>> MODELING IMPLICATION
-      Build dim_dates covering the full span. Note 2016 and the tail of 2018
-      have very few orders -- worth flagging in dashboards so trend lines
-      don't mislead viewers.""")
+      -> dim_dates should cover the full span. 2016 and the tail of 2018
+         are both thin months -- flag those as partial periods in any
+         trend chart or they'll read as a real dip.""")
 
-    # =====================================================================
-    # 2. CUSTOMER GRAIN -- the famous customer_id vs customer_unique_id trap
-    # =====================================================================
     section("2. CUSTOMER GRAIN (the critical trap)")
 
     rows = query(con, f"""
@@ -115,18 +104,11 @@ def main():
     show(rows, ["orders_placed", "n_customers"])
 
     print("""
-  >>> MODELING IMPLICATION
-      customer_id is a PER-ORDER identifier, NOT a person.
-      customer_unique_id is the real person.
+      -> customer_id is per order, not per person -- customer_unique_id
+         is the real person. dim_customers has to be built on
+         customer_unique_id or every repeat buyer looks like a
+         one-time customer.""")
 
-      In dim_customers, the grain MUST be customer_unique_id.
-      For "repeat customer" or "customer lifetime value" metrics,
-      always use customer_unique_id. Using customer_id will make
-      every customer look like a one-time buyer.""")
-
-    # =====================================================================
-    # 3. ORDER STATUS DISTRIBUTION -- what counts as a "real" order?
-    # =====================================================================
     section("3. ORDER STATUS DISTRIBUTION")
 
     rows = query(con, f"""
@@ -140,20 +122,12 @@ def main():
     show(rows, ["status", "n_orders", "pct"])
 
     print("""
-  >>> MODELING IMPLICATION
-      'delivered' is the only status that represents a completed transaction.
-      'canceled' should be excluded from revenue.
-      'shipped', 'processing', 'invoiced', 'approved', 'created' are
-      in-flight orders -- may or may not count depending on the metric.
-      'unavailable' = order placed but product unavailable.
+      -> only 'delivered' is a completed transaction. 'canceled' shouldn't
+         count toward revenue at all. everything else (shipped, processing,
+         invoiced, approved, created, unavailable) is in some in-flight or
+         dead-end state -- whether it counts depends on which revenue
+         number you're asked for, hence revenue_gross vs revenue_net later.""")
 
-      This is one of the headline metric ambiguities your semantic layer
-      will solve. Define revenue_gross (all paid orders) vs
-      revenue_net (delivered only) and let the user choose.""")
-
-    # =====================================================================
-    # 4. ORDER ITEMS GRAIN -- the multiplication trap
-    # =====================================================================
     section("4. ORDER ITEMS GRAIN")
 
     rows = query(con, f"""
@@ -180,21 +154,11 @@ def main():
     show(rows, ["items_in_order", "n_orders"])
 
     print("""
-  >>> MODELING IMPLICATION
-      order_items is at the ITEM grain, not the order grain.
-      An order with 3 items produces 3 rows here.
+      -> order_items is item grain, not order grain -- 3 items = 3 rows.
+         summing price grouped by order is fine, but joining order_items
+         straight to order_payments without aggregating first would
+         fan out badly. pre-aggregate to order grain before that join.""")
 
-      If you join orders -> order_items and then sum 'price' at the
-      order level WITHOUT being careful, you will NOT multiply (good).
-      But if you join order_items -> order_payments without aggregating
-      first, you WILL get a Cartesian explosion.
-
-      Build fact_order_items at ITEM grain (one row per item).
-      Pre-aggregate to order grain BEFORE joining to payments or reviews.""")
-
-    # =====================================================================
-    # 5. PAYMENTS GRAIN -- multiple payment methods per order
-    # =====================================================================
     section("5. PAYMENTS GRAIN")
 
     rows = query(con, f"""
@@ -231,19 +195,12 @@ def main():
     show(rows, ["payment_type", "n"])
 
     print("""
-  >>> MODELING IMPLICATION
-      An order can have multiple payment rows (e.g. credit card + voucher).
-      To get total paid per order, SUM(payment_value) GROUP BY order_id.
+      -> an order can have several payment rows (credit card + voucher,
+         say), so total paid = SUM(payment_value) GROUP BY order_id.
+         that total won't match SUM(price + freight) from order_items
+         exactly -- vouchers and installment fees explain the gap. worth
+         keeping both as separate, named metrics rather than picking one.""")
 
-      Note: payment_value SUM per order will often differ slightly from
-      SUM(price + freight_value) in order_items due to vouchers and
-      installment fees. This is another metric definition choice:
-      "revenue" = sum of item prices? or sum of payments collected?
-      Document both.""")
-
-    # =====================================================================
-    # 6. REVIEWS GRAIN -- duplicate reviews and timing
-    # =====================================================================
     section("6. REVIEWS GRAIN")
 
     rows = query(con, f"""
@@ -280,16 +237,10 @@ def main():
     show(rows, ["score", "n", "pct"])
 
     print("""
-  >>> MODELING IMPLICATION
-      Most orders have exactly one review, but a small number have multiple.
-      Decide: keep the latest review per order (recommended) or average?
+      -> a handful of orders have more than one review. going with
+         latest-review-wins (ROW_NUMBER partitioned by order_id, ordered
+         by review_creation_date desc) rather than averaging them.""")
 
-      In stg_order_reviews, deduplicate to one row per order using
-      ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY review_creation_date DESC).""")
-
-    # =====================================================================
-    # 7. DELIVERY PERFORMANCE -- on-time vs late
-    # =====================================================================
     section("7. DELIVERY PERFORMANCE")
 
     rows = query(con, f"""
@@ -337,18 +288,11 @@ def main():
     show(rows, ["delivery_status", "avg_score", "n"])
 
     print("""
-  >>> MODELING IMPLICATION
-      Late deliveries strongly correlate with lower review scores.
-      This is the headline narrative connection back to Project 2's
-      satisfaction work. Make sure fact_orders carries:
-        - delivery_days (computed)
-        - is_on_time (boolean)
-        - delivery_status (on_time / late / not_delivered)
-      and that fact_reviews can join cleanly to expose this story.""")
+      -> this is the headline finding -- late delivery tanks review
+         scores. fact_orders needs delivery_days, is_on_time, and
+         delivery_status so this relationship is queryable later,
+         not something you'd have to recompute by hand.""")
 
-    # =====================================================================
-    # 8. GEOLOCATION DUPLICATES
-    # =====================================================================
     section("8. GEOLOCATION DUPLICATES")
 
     rows = query(con, f"""
@@ -362,16 +306,9 @@ def main():
     show(rows, ["total_rows", "distinct_zips", "avg_rows_per_zip"])
 
     print("""
-  >>> MODELING IMPLICATION
-      geolocation has many rows per zip code (multiple lat/lng samples).
-      DO NOT join it directly to customers or sellers -- you'll multiply rows.
+      -> way too many rows per zip to join this raw. aggregate first --
+         avg lat/lng, mode city/state, grouped by zip_code_prefix.""")
 
-      In stg_geolocation, aggregate to one row per zip:
-        AVG(lat), AVG(lng), MODE(city), MODE(state) GROUP BY zip_code_prefix.""")
-
-    # =====================================================================
-    # 9. PRODUCTS WITH MISSING METADATA
-    # =====================================================================
     section("9. PRODUCT METADATA GAPS")
 
     rows = query(con, f"""
@@ -384,15 +321,10 @@ def main():
     show(rows, ["total_products", "missing_category", "missing_weight"])
 
     print("""
-  >>> MODELING IMPLICATION
-      ~610 products (1.9%) have no category. In stg_products, coalesce
-      to 'uncategorized' so they still appear in category-level reports.
-      The category translation table maps Portuguese -> English; do
-      that join in stg_products so downstream models see English only.""")
+      -> ~610 products (1.9%) have no category -- coalesce to
+         'uncategorized' in staging instead of dropping them from
+         category reports. do the PT->EN translation join there too.""")
 
-    # =====================================================================
-    # 10. STATE COVERAGE
-    # =====================================================================
     section("10. GEOGRAPHIC COVERAGE")
 
     subsection("Top 10 customer states by order volume")
@@ -406,27 +338,21 @@ def main():
     show(rows, ["state", "orders"])
 
     print("""
-  >>> MODELING IMPLICATION
-      Sao Paulo (SP) will dominate. For dashboards, consider showing
-      "SP vs rest of Brazil" as a toggle, or normalizing by population.""")
+      -> Sao Paulo alone will dominate every chart. Worth a "SP vs rest
+         of Brazil" toggle on dashboards rather than one long state list.""")
 
-    # =====================================================================
-    # SUMMARY
-    # =====================================================================
-    section("PHASE 2 SUMMARY -- DECISIONS TO RECORD")
+    section("SUMMARY")
     print("""
-  Document these in docs/phase2_findings.md before starting dbt:
+  Decisions this run feeds into docs/phase2_findings.md:
 
-    1. dim_customers grain     = customer_unique_id (not customer_id)
-    2. fact_order_items grain  = item (one row per item per order)
-    3. fact_orders grain       = order (pre-aggregate items first)
-    4. Review dedup            = latest review_creation_date per order
-    5. Geolocation handling    = aggregate to one row per zip
-    6. Missing categories      = coalesce to 'uncategorized'
-    7. Revenue definitions     = gross (all) vs net (delivered only)
-    8. Payment vs item totals  = document as separate metrics
-    9. Date dimension          = cover 2016-09 through 2018-10
-   10. Status filter           = decide per metric, not globally
+    - dim_customers grain: customer_unique_id, not customer_id
+    - fact_order_items: item grain; fact_orders: pre-aggregated order grain
+    - reviews: keep latest per order, don't average
+    - geolocation: aggregate to one row per zip before joining anywhere
+    - missing product categories: coalesce to 'uncategorized'
+    - revenue: gross (non-canceled) vs net (delivered) as separate metrics
+    - date dimension: cover 2016-09 through 2018-10
+    - status filtering: decided per metric, not with one global rule
 """)
 
     con.close()

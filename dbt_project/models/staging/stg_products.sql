@@ -1,11 +1,6 @@
--- ============================================================================
--- stg_products
--- ----------------------------------------------------------------------------
--- Grain: one row per product_id.
--- Joins Portuguese -> English category translation.
--- Missing categories coalesced to 'uncategorized' so products without
--- metadata still appear in category-level reports.
--- ============================================================================
+-- one row per product_id. Joins the PT -> EN category translation and
+-- coalesces missing categories to 'uncategorized' so those products
+-- don't just vanish from category reports.
 
 with products as (
 
